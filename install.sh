@@ -63,6 +63,14 @@ then
     sudo apt-get install -y mysql-client
 fi
 
+# проверка mysql
+if ! systemctl is-active --quiet mysql; then
+    echo "MySQL сервер не установлен или не запущен. Устанавливаем и запускаем MySQL Server..."
+    sudo apt-get install -y mysql-server
+    sudo systemctl start mysql
+    sudo systemctl enable mysql
+fi
+
 # -------------------------------
 # 1. Запрос GitHub Personal Access Token
 # -------------------------------
