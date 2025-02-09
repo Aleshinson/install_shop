@@ -15,9 +15,6 @@ banner_marz_bot_shop() {
     echo
 }
 
-# Очистка экрана
-clear
-
 # Вывод баннера
 banner_marz_bot_shop
 
@@ -25,7 +22,6 @@ banner_marz_bot_shop
 # Скрипт установки VPNado из приватного Git-репозитория + Webhook + Nginx + SSL
 # =============================================
 
-clear
 echo "======================================="
 echo "         VPNado Installer"
 echo "======================================="
@@ -44,17 +40,7 @@ then
 fi
 
 # Python3 + venv
-if ! command -v python3 &> /dev/null
-then
-    echo "Устанавливаем python3, python3-venv, python3-pip..."
-    sudo apt-get install -y python3 python3-venv python3-pip
-else
-    if ! python3 -m venv --help &> /dev/null
-    then
-        echo "Устанавливаем python3-venv..."
-        sudo apt-get install -y python3-venv
-    fi
-fi
+sudo apt-get install -y python3 python3-venv python3-pip
 
 # MySQL client
 if ! command -v mysql &> /dev/null
