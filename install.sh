@@ -499,7 +499,7 @@ URL_CHANEL_NEWS=https://vpnado.ru/oferta
 # Ссылка на самого бота
 TG_BOT=https://t.me/VPNado_bot
 # Список пользователей с персональной скидкой
-SPECIAL_USERS_CHAT_ID=[1, 2]
+SPECIAL_USERS_CHAT_ID=1, 2
 EOF
 
 # -------------------------------
