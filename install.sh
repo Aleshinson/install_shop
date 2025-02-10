@@ -39,9 +39,6 @@ then
     sudo apt-get install -y git
 fi
 
-# Python3 + venv
-sudo apt-get install -y python3 python3-venv python3-pip
-
 # MySQL client
 if ! command -v mysql &> /dev/null
 then
@@ -223,6 +220,8 @@ echo
 # -------------------------------
 # 6. Создание и настройка виртуального окружения Python для бота
 # -------------------------------
+# Python3 + venv
+sudo apt-get install -y python3 python3-venv python3-pip
 echo "Создаём виртуальное окружение Python в $REPO_DIR/venv..."
 python3 -m venv "$REPO_DIR/venv"
 
