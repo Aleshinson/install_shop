@@ -264,6 +264,18 @@ DB_PASSWORD=$DBUSER_PASSWORD
 
 ENABLE_YOOKASSA=$ENABLE_YOOKASSA
 ENABLE_STARS=$ENABLE_STARS
+
+# --- Дополнительные настройки бота ---
+# Ссылка на чат поддержки
+URL_SUPPORT=https://t.me/VPNado_support
+# Ссылка на оферту
+URL_OFERTA=https://vpnado.ru/oferta
+# Ссылка на канал с новостями (если канала нет, закомментируйте кнопки в data/buttons.py)
+URL_CHANEL_NEWS=https://vpnado.ru/oferta
+# Ссылка на самого бота
+TG_BOT=https://t.me/VPNado_bot
+# Список пользователей с персональной скидкой
+SPECIAL_USERS_CHAT_ID=[1, 2]
 EOF
 
 # -------------------------------
