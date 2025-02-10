@@ -519,6 +519,7 @@ Type=simple
 User=root
 WorkingDirectory=$REPO_DIR
 Environment="PYTHONPATH=$REPO_DIR/venv/lib/python3.8/site-packages"
+Environment="PYTHONIOENCODING=utf-8"
 ExecStart=$REPO_DIR/venv/bin/python3 $REPO_DIR/main.py
 RestartSec=10
 Restart=always
