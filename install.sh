@@ -56,7 +56,7 @@ if [[ "$yookassa_choice" =~ ^[Yy]$ ]]; then
     read YOOKASSA_SHOP_ID
     echo -en "${BOLD}${YELLOW}Введите YOOKASSA_SECRET_KEY: ${RESET}"
     read YOOKASSA_SECRET_KEY
-    echo -en "${BOLD}${YELLOW}Введите EMAIL (для квитанций/Certbot): ${RESET}"
+    echo -en "${BOLD}${YELLOW}Введите EMAIL (для квитанций): ${RESET}"
     read EMAIL
 else
     ENABLE_YOOKASSA=False
