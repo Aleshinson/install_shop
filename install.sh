@@ -1,6 +1,13 @@
 #!/bin/bash
 
 # ------------------------------------------------
+# Цвета и форматирование
+# ------------------------------------------------
+BOLD="\033[1m"
+YELLOW="\033[93m"
+RESET="\033[0m"
+
+# ------------------------------------------------
 # Функция для отображения баннера
 # ------------------------------------------------
 banner_marz_bot_shop() {
@@ -18,18 +25,113 @@ banner_marz_bot_shop() {
 # Вывод баннера
 banner_marz_bot_shop
 
-# =============================================
-# Скрипт установки VPNado из приватного Git-репозитория + Webhook + Nginx + SSL
-# =============================================
-
 echo "======================================="
 echo "         VPNado Installer"
 echo "======================================="
 echo
 
-# -------------------------------
-# 0. Подготовка: установка зависимостей
-# -------------------------------
+# ------------------------------------------------
+#   0. Сбор ВСЕХ необходимых данных у пользователя
+# ------------------------------------------------
+
+# --- GitHub Token ---
+echo -en "${BOLD}${YELLOW}Введите GITHUB_TOKEN (для приватного репозитория): ${RESET}"
+read GITHUB_TOKEN
+if [ -z "$GITHUB_TOKEN" ]; then
+  echo "Ошибка: Вы не ввели токен. Скрипт не может продолжить."
+  exit 1
+fi
+
+# --- BOT_TOKEN ---
+echo -en "${BOLD}${YELLOW}Введите BOT_TOKEN: ${RESET}"
+read BOT_TOKEN
+
+# --- Принимать платежи через YooKassa? ---
+echo -en "${BOLD}${YELLOW}Вы хотите принимать платежи через YooKassa? (y/n): ${RESET}"
+read yookassa_choice
+
+if [[ "$yookassa_choice" =~ ^[Yy]$ ]]; then
+    ENABLE_YOOKASSA=True
+    echo -en "${BOLD}${YELLOW}Введите YOOKASSA_SHOP_ID: ${RESET}"
+    read YOOKASSA_SHOP_ID
+    echo -en "${BOLD}${YELLOW}Введите YOOKASSA_SECRET_KEY: ${RESET}"
+    read YOOKASSA_SECRET_KEY
+    echo -en "${BOLD}${YELLOW}Введите EMAIL (для квитанций/Certbot): ${RESET}"
+    read EMAIL
+else
+    ENABLE_YOOKASSA=False
+    YOOKASSA_SHOP_ID=""
+    YOOKASSA_SECRET_KEY=""
+    EMAIL=""
+fi
+
+# --- Принимать оплату "звездами"? ---
+echo -en "${BOLD}${YELLOW}Вы хотите принимать оплату звездами? (y/n): ${RESET}"
+read stars_choice
+if [[ "$stars_choice" =~ ^[Yy]$ ]]; then
+    ENABLE_STARS=True
+else
+    ENABLE_STARS=False
+fi
+
+# --- Данные для Marzban ---
+echo -en "${BOLD}${YELLOW}Введите MARZBAN_USERNAME: ${RESET}"
+read MARZBAN_USERNAME
+echo -en "${BOLD}${YELLOW}Введите MARZBAN_PASSWORD: ${RESET}"
+read MARZBAN_PASSWORD
+echo -en "${BOLD}${YELLOW}Введите MARZBAN_URL: ${RESET}"
+read MARZBAN_URL
+
+# --- Telegram ID админа ---
+echo -en "${BOLD}${YELLOW}Введите Telegram ID админа: ${RESET}"
+read OWNER_ID_KEY
+
+# --- Данные для MySQL ---
+echo
+echo "=== Настройки базы данных ==="
+echo -en "${BOLD}${YELLOW}Введите MySQL host (по умолчанию localhost): ${RESET}"
+read DB_HOST
+DB_HOST="${DB_HOST:-localhost}"
+
+echo -en "${BOLD}${YELLOW}Введите MySQL порт (по умолчанию 3306): ${RESET}"
+read DB_PORT
+DB_PORT="${DB_PORT:-3306}"
+
+echo -en "${BOLD}${YELLOW}Введите MySQL root-пользователя (по умолчанию root): ${RESET}"
+read MYSQL_ROOT_USER
+MYSQL_ROOT_USER="${MYSQL_ROOT_USER:-root}"
+
+echo -en "${BOLD}${YELLOW}Введите пароль MySQL для пользователя $MYSQL_ROOT_USER (может быть пустым): ${RESET}"
+read -s MYSQL_ROOT_PASSWORD
+echo
+
+echo -en "${BOLD}${YELLOW}Введите название новой базы данных: ${RESET}"
+read DB_NAME
+
+echo -en "${BOLD}${YELLOW}Введите имя нового пользователя БД: ${RESET}"
+read DBUSER_NAME
+
+echo -en "${BOLD}${YELLOW}Введите пароль для пользователя $DBUSER_NAME: ${RESET}"
+read -s DBUSER_PASSWORD
+echo
+
+# --- Nginx ---
+echo -en "${BOLD}${YELLOW}Установить и настроить Nginx? (y/n): ${RESET}"
+read nginx_choice
+
+if [[ "$nginx_choice" =~ ^[Yy]$ ]]; then
+    echo -en "${BOLD}${YELLOW}Введите ваш домен (например: vpnado.ru): ${RESET}"
+    read SERVER_DOMAIN
+
+    if [ -n "$SERVER_DOMAIN" ]; then
+      echo -en "${BOLD}${YELLOW}Получить SSL-сертификат через Certbot для $SERVER_DOMAIN? (y/n): ${RESET}"
+      read ssl_choice
+    fi
+fi
+
+# ------------------------------------------------
+# 1. Подготовка: установка зависимостей
+# ------------------------------------------------
 sudo apt-get update
 
 # git
@@ -54,24 +156,12 @@ if ! systemctl is-active --quiet mysql; then
     sudo systemctl enable mysql
 fi
 
-# -------------------------------
-# 1. Запрос GitHub Personal Access Token
-# -------------------------------
-echo "Для клонирования приватного репозитория требуется GitHub Personal Access Token (classic)."
-read -p "Введите GITHUB_TOKEN: " GITHUB_TOKEN
-
-if [ -z "$GITHUB_TOKEN" ]; then
-  echo "Ошибка: Вы не ввели токен. Скрипт не может продолжить."
-  exit 1
-fi
-
-# URL приватного репозитория
+# ------------------------------------------------
+# 2. Клонирование/обновление репозитория
+# ------------------------------------------------
 REPO_URL="https://${GITHUB_TOKEN}@github.com/Aleshinson/VPNado.git"
 REPO_DIR="/home/VPNado"
 
-# -------------------------------
-# 2. Клонирование/обновление репозитория
-# -------------------------------
 if [ -d "$REPO_DIR" ]; then
     echo "Директория $REPO_DIR уже существует. Обновляем репозиторий..."
     cd "$REPO_DIR" || { echo "Не удалось перейти в $REPO_DIR"; exit 1; }
@@ -82,9 +172,9 @@ else
     cd "$REPO_DIR" || { echo "Не удалось перейти в $REPO_DIR"; exit 1; }
 fi
 
-# -------------------------------
+# ------------------------------------------------
 # 3. Создание директории для конфигураций
-# -------------------------------
+# ------------------------------------------------
 CONFIGS_DIR="$REPO_DIR/configs"
 mkdir -p "$CONFIGS_DIR"
 ENV_FILE="$CONFIGS_DIR/.env"
@@ -92,67 +182,9 @@ ENV_FILE="$CONFIGS_DIR/.env"
 echo "Файл конфигурации .env будет создан по пути: $ENV_FILE"
 echo
 
-# -------------------------------
-# 4. Запрос переменных для бота
-# -------------------------------
-read -p "Введите BOT_TOKEN: " BOT_TOKEN
-
-# Настройка YooKassa
-read -p "Вы хотите принимать платежи через YooKassa? (y/n): " yookassa_choice
-if [[ "$yookassa_choice" =~ ^[Yy]$ ]]; then
-    ENABLE_YOOKASSA=True
-    read -p "Введите YOOKASSA_SHOP_ID: " YOOKASSA_SHOP_ID
-    read -p "Введите YOOKASSA_SECRET_KEY: " YOOKASSA_SECRET_KEY
-    read -p "Введите EMAIL: " EMAIL
-else
-    ENABLE_YOOKASSA=False
-    YOOKASSA_SHOP_ID=""
-    YOOKASSA_SECRET_KEY=""
-    EMAIL=""
-fi
-
-# Настройка приема оплаты звездами
-read -p "Вы хотите принимать оплату звездами? (y/n): " stars_choice
-if [[ "$stars_choice" =~ ^[Yy]$ ]]; then
-    ENABLE_STARS=True
-else
-    ENABLE_STARS=False
-fi
-
-# Данные для Marzban
-read -p "Введите MARZBAN_USERNAME: " MARZBAN_USERNAME
-read -p "Введите MARZBAN_PASSWORD: " MARZBAN_PASSWORD
-read -p "Введите MARZBAN_URL: " MARZBAN_URL
-
-# Телеграм ID админа
-read -p "Введите Telegram ID админа: " OWNER_ID_KEY
-
-# -------------------------------
-# 5. Настройка и создание MySQL базы/пользователя/таблиц
-# -------------------------------
-echo
-echo "=== Настройки базы данных ==="
-read -p "Введите MySQL host (по умолчанию localhost): " DB_HOST
-DB_HOST="${DB_HOST:-localhost}"
-
-read -p "Введите MySQL порт (по умолчанию 3306): " DB_PORT
-DB_PORT="${DB_PORT:-3306}"
-
-# root-доступ в MySQL (для создания базы и пользователя)
-read -p "Введите MySQL root-пользователя (по умолчанию root): " MYSQL_ROOT_USER
-MYSQL_ROOT_USER="${MYSQL_ROOT_USER:-root}"
-
-echo -n "Введите пароль MySQL для пользователя $MYSQL_ROOT_USER (может быть пустым): "
-read -s MYSQL_ROOT_PASSWORD
-echo
-
-# Данные для новой базы и пользователя
-read -p "Введите название новой базы данных: " DB_NAME
-read -p "Введите имя нового пользователя БД: " DBUSER_NAME
-echo -n "Введите пароль для пользователя $DBUSER_NAME: "
-read -s DBUSER_PASSWORD
-echo
-
+# ------------------------------------------------
+# 4. Настройка и создание MySQL базы/пользователя/таблиц
+# ------------------------------------------------
 echo
 echo "Создаём базу данных '$DB_NAME', пользователя '$DBUSER_NAME' и необходимые таблицы..."
 
@@ -217,9 +249,9 @@ fi
 echo "База данных '$DB_NAME' и таблицы успешно созданы."
 echo
 
-# -------------------------------
-# 6. Создание и настройка виртуального окружения Python для бота
-# -------------------------------
+# ------------------------------------------------
+# 5. Создание и настройка виртуального окружения Python для бота
+# ------------------------------------------------
 sudo apt-get install -y python3 python3-venv python3-pip
 echo "Создаём виртуальное окружение Python в $REPO_DIR/venv..."
 python3 -m venv "$REPO_DIR/venv"
@@ -239,16 +271,15 @@ if [ -f "$REPO_DIR/requirements.txt" ]; then
 
     echo "Правим файл marzpy/api/user.py..."
 
-    # Путь к user.py (для Python 3.8) — меняйте 3.8 на свою версию, если нужно.
     MARZPY_USER_FILE="$REPO_DIR/venv/lib/python3.8/site-packages/marzpy/api/user.py"
 
-    # Делаем резервную копию на всякий случай
+    # Делаем резервную копию
     cp "$MARZPY_USER_FILE" "$MARZPY_USER_FILE.bak" || {
         echo "Не удалось сделать резервную копию $MARZPY_USER_FILE"
         exit 1
     }
 
-    # Полностью перезаписываем файл с учётом нужных добавленных полей
+    # Полностью перезаписываем файл user.py
     cat <<'EOF' > "$MARZPY_USER_FILE"
 from .send_requests import *
 
@@ -381,14 +412,14 @@ class UserMethods:
         return "success"
     
     async def revoke_sub(self, user_username: str, token: dict):
-        """Revoke users subscription (Subscription link and proxies) traffic by username.
+        """Revoke users subscription (Subscription link and proxies) by username.
 
         Parameters:
             user_username (``str``) : username of user
 
             token (``dict``) : Authorization token
 
-        Returns: `~str`: success
+        Returns: `~User`: api.User object
         """
         request = await send_request(f"user/{user_username}/revoke_sub", token, "post")
         return User(**request)
@@ -465,9 +496,9 @@ fi
 
 deactivate
 
-# -------------------------------
-# 7. Запись ВСЕХ переменных в файл .env
-# -------------------------------
+# ------------------------------------------------
+# 6. Запись переменных окружения в файл .env
+# ------------------------------------------------
 cat <<EOF > "$ENV_FILE"
 BOT_TOKEN=$BOT_TOKEN
 YOOKASSA_SHOP_ID=$YOOKASSA_SHOP_ID
@@ -490,21 +521,16 @@ ENABLE_YOOKASSA=$ENABLE_YOOKASSA
 ENABLE_STARS=$ENABLE_STARS
 
 # --- Дополнительные настройки бота ---
-# Ссылка на чат поддержки
 URL_SUPPORT=https://t.me/VPNado_support
-# Ссылка на оферту
 URL_OFERTA=https://vpnado.ru/oferta
-# Ссылка на канал с новостями (если канала нет, закомментируйте кнопки в data/buttons.py)
 URL_CHANEL_NEWS=https://vpnado.ru/oferta
-# Ссылка на самого бота
 TG_BOT=https://t.me/VPNado_bot
-# Список пользователей с персональной скидкой
 SPECIAL_USERS_CHAT_ID=1, 2
 EOF
 
-# -------------------------------
-# 8. Создание systemd-сервиса для бота (vpnadobot)
-# -------------------------------
+# ------------------------------------------------
+# 7. Создание systemd-сервиса для бота
+# ------------------------------------------------
 SERVICE_FILE="/etc/systemd/system/vpnadobot.service"
 echo "Создаём systemd unit-файл $SERVICE_FILE..."
 
@@ -537,30 +563,23 @@ echo "Systemd-сервис vpnadobot.service создан и запущен."
 echo "Проверка статуса: sudo systemctl status vpnadobot.service"
 echo
 
-# -------------------------------
-# 9. Настройка Nginx (опционально)
-# -------------------------------
-echo "Настроим Nginx для обратного проксирования и (по желанию) получим SSL-сертификат."
-read -p "Установить и настроить Nginx? (y/n): " nginx_choice
-
+# ------------------------------------------------
+# 8. Настройка Nginx (опционально)
+# ------------------------------------------------
 if [[ "$nginx_choice" =~ ^[Yy]$ ]]; then
     # Установим Nginx, если не установлен
-    if ! command -v nginx &> /dev/null
-    then
+    if ! command -v nginx &> /dev/null; then
         echo "Устанавливаем Nginx..."
         sudo apt-get install -y nginx
     fi
     
-    # Запросим домен
-    echo
-    read -p "Введите ваш домен (например: vpnado.ru): " SERVER_DOMAIN
     if [ -z "$SERVER_DOMAIN" ]; then
-      echo "Домен не указан, пропускаем настройку Nginx."
+        echo "Домен не указан, пропускаем настройку Nginx."
     else
-      # Создадим конфиг Nginx
-      NGINX_CONF="/etc/nginx/sites-available/${SERVER_DOMAIN}.conf"
-      
-      cat <<EOF | sudo tee "$NGINX_CONF" > /dev/null
+        # Создадим конфиг Nginx
+        NGINX_CONF="/etc/nginx/sites-available/${SERVER_DOMAIN}.conf"
+        
+        cat <<EOF | sudo tee "$NGINX_CONF" > /dev/null
 server {
     root /var/www/${SERVER_DOMAIN}/html;
     index index.html index.htm index.nginx-debian.html;
@@ -588,43 +607,44 @@ server {
 }
 EOF
 
-      # Создадим директорию для /var/www/домен
-      sudo mkdir -p /var/www/${SERVER_DOMAIN}/html
-      echo "<h1>Hello from $SERVER_DOMAIN</h1>" | sudo tee /var/www/${SERVER_DOMAIN}/html/index.html
+        # Создадим директорию /var/www/домен
+        sudo mkdir -p /var/www/${SERVER_DOMAIN}/html
+        echo "<h1>Hello from $SERVER_DOMAIN</h1>" | sudo tee /var/www/${SERVER_DOMAIN}/html/index.html
 
-      # Включим конфиг
-      sudo ln -sf "$NGINX_CONF" "/etc/nginx/sites-enabled/"
-      sudo nginx -t && sudo systemctl reload nginx
+        # Включим конфиг
+        sudo ln -sf "$NGINX_CONF" "/etc/nginx/sites-enabled/"
+        sudo nginx -t && sudo systemctl reload nginx
 
-      echo
-      echo "Nginx сконфигурирован для домена ${SERVER_DOMAIN} (HTTP)."
-      echo "Проверяем: http://${SERVER_DOMAIN}/"
+        echo
+        echo "Nginx сконфигурирован для домена ${SERVER_DOMAIN} (HTTP)."
+        echo "Проверяем: http://${SERVER_DOMAIN}/"
 
-      # Установка SSL (Certbot)
-      read -p "Получить SSL-сертификат для домена ${SERVER_DOMAIN} через Certbot? (y/n): " ssl_choice
-      if [[ "$ssl_choice" =~ ^[Yy]$ ]]; then
-         if ! command -v certbot &> /dev/null
-         then
-             echo "Устанавливаем certbot и python3-certbot-nginx..."
-             sudo apt-get install -y certbot python3-certbot-nginx
-         fi
+        # Установка SSL (Certbot)
+        if [[ "$ssl_choice" =~ ^[Yy]$ ]]; then
+            if ! command -v certbot &> /dev/null; then
+                echo "Устанавливаем certbot и python3-certbot-nginx..."
+                sudo apt-get install -y certbot python3-certbot-nginx
+            fi
 
-         echo "Запускаем certbot для ${SERVER_DOMAIN} и www.${SERVER_DOMAIN}..."
-         sudo certbot --nginx -d "${SERVER_DOMAIN}" -d "www.${SERVER_DOMAIN}" --non-interactive --agree-tos -m "admin@${SERVER_DOMAIN}"
+            echo "Запускаем certbot для ${SERVER_DOMAIN} и www.${SERVER_DOMAIN}..."
+            sudo certbot --nginx -d "${SERVER_DOMAIN}" -d "www.${SERVER_DOMAIN}" --non-interactive --agree-tos -m "${EMAIL:-admin@${SERVER_DOMAIN}}"
 
-         if [ $? -eq 0 ]; then
-           echo "SSL успешно настроен. Проверьте https://${SERVER_DOMAIN}/"
-         else
-           echo "Ошибка получения SSL-сертификата. Проверьте логи certbot."
-         fi
-      else
-         echo "Пропускаем настройку SSL."
-      fi
+            if [ $? -eq 0 ]; then
+                echo "SSL успешно настроен. Проверьте https://${SERVER_DOMAIN}/"
+            else
+                echo "Ошибка получения SSL-сертификата. Проверьте логи certbot."
+            fi
+        else
+            echo "Пропускаем настройку SSL."
+        fi
     fi
 else
     echo "Пропускаем установку и настройку Nginx."
 fi
 
+# ------------------------------------------------
+# Завершение
+# ------------------------------------------------
 echo
 echo "Все шаги установки завершены!"
 echo
@@ -632,6 +652,5 @@ echo "Параметры сохранены в $ENV_FILE"
 echo "Репозиторий: $REPO_DIR"
 echo
 echo "VPNado Bot запущен как vpnadobot.service."
-[ "$webhook_choice" = "y" ] && echo "Webhook запущен как webhook.service."
 echo
 echo "Установка завершена. Приятной работы!"
