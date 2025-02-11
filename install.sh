@@ -538,50 +538,7 @@ echo "Проверка статуса: sudo systemctl status vpnadobot.service"
 echo
 
 # -------------------------------
-# 9. Создание systemd-сервиса для вебхука (webhook.service)
-# -------------------------------
-echo "Теперь настроим webhook.service (Flask-приложение)."
-echo
-echo "Убедитесь, что у вас есть рабочий каталог и virtualenv для webhook: /home/vpn/fapi-venv"
-echo "  - файл webhook.py внутри /home/vpn/fapi-venv/"
-echo "  - python3 в /home/vpn/fapi-venv/bin/python3"
-echo
-read -p "Продолжить создание webhook.service? (y/n): " webhook_choice
-
-if [[ "$webhook_choice" =~ ^[Yy]$ ]]; then
-    WEBHOOK_SERVICE="/etc/systemd/system/webhook.service"
-    echo "Создаём systemd unit-файл $WEBHOOK_SERVICE..."
-
-    cat <<EOF | sudo tee "$WEBHOOK_SERVICE" > /dev/null
-[Unit]
-Description=My Flask Webhook Service
-After=network.target
-
-[Service]
-User=root
-WorkingDirectory=/home/vpn/fapi-venv
-ExecStart=/home/vpn/fapi-venv/bin/python3 /home/vpn/fapi-venv/webhook.py
-RestartSec=10
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-    sudo systemctl daemon-reload
-    sudo systemctl enable webhook.service
-    sudo systemctl start webhook.service
-
-    echo
-    echo "Systemd-сервис webhook.service создан и запущен."
-    echo "Проверка статуса: sudo systemctl status webhook.service"
-    echo
-else
-    echo "Пропускаем создание webhook.service."
-fi
-
-# -------------------------------
-# 10. Настройка Nginx (опционально)
+# 9. Настройка Nginx (опционально)
 # -------------------------------
 echo "Настроим Nginx для обратного проксирования и (по желанию) получим SSL-сертификат."
 read -p "Установить и настроить Nginx? (y/n): " nginx_choice
