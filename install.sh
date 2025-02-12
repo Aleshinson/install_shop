@@ -34,14 +34,6 @@ echo
 #   0. Сбор ВСЕХ необходимых данных у пользователя
 # ------------------------------------------------
 
-# --- GitHub Token ---
-echo -en "${BOLD}${YELLOW}Введите GITHUB_TOKEN (для приватного репозитория): ${RESET}"
-read GITHUB_TOKEN
-if [ -z "$GITHUB_TOKEN" ]; then
-  echo "Ошибка: Вы не ввели токен. Скрипт не может продолжить."
-  exit 1
-fi
-
 # --- BOT_TOKEN ---
 echo -en "${BOLD}${YELLOW}Введите BOT_TOKEN: ${RESET}"
 read BOT_TOKEN
@@ -159,7 +151,14 @@ fi
 # ------------------------------------------------
 # 2. Клонирование/обновление репозитория
 # ------------------------------------------------
-REPO_URL="https://${GITHUB_TOKEN}@github.com/Aleshinson/VPNado.git"
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/deploy_key
+
+echo -e "Host github.com\n  IdentityFile ~/.ssh/deploy_key\n  User git" > ~/.ssh/config
+chmod 600 ~/.ssh/config
+
+# Клонирование/обновление репозитория
+REPO_URL="git@github.com:Aleshinson/VPNado.git"
 REPO_DIR="/home/VPNado"
 
 if [ -d "$REPO_DIR" ]; then
