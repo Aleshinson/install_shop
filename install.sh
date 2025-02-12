@@ -270,16 +270,22 @@ if [ -f "$REPO_DIR/requirements.txt" ]; then
 
     echo "Правим файл marzpy/api/user.py..."
 
-    MARZPY_USER_FILE="$REPO_DIR/venv/lib/python3.8/site-packages/marzpy/api/user.py"
+SITE_PACKAGES_PATH=$(python3 -c "import site; print(site.getsitepackages()[0])")
 
-    # Делаем резервную копию
-    cp "$MARZPY_USER_FILE" "$MARZPY_USER_FILE.bak" || {
-        echo "Не удалось сделать резервную копию $MARZPY_USER_FILE"
-        exit 1
-    }
+MARZPY_USER_FILE="$SITE_PACKAGES_PATH/marzpy/api/user.py"
 
-    # Полностью перезаписываем файл user.py
-    cat <<'EOF' > "$MARZPY_USER_FILE"
+if [ ! -f "$MARZPY_USER_FILE" ]; then
+    echo "Ошибка: Файл $MARZPY_USER_FILE не найден!"
+    exit 1
+fi
+
+cp "$MARZPY_USER_FILE" "$MARZPY_USER_FILE.bak" || {
+    echo "Не удалось сделать резервную копию $MARZPY_USER_FILE"
+    exit 1
+}
+
+# Полностью перезаписываем файл user.py
+cat <<'EOF' > "$MARZPY_USER_FILE"
 from .send_requests import *
 
 async def delete_if_exist(dic,keys:list):
